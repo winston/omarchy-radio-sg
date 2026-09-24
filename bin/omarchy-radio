@@ -1,0 +1,222 @@
+#!/bin/bash
+# omarchy-radio-sg managed file: installed and removed by install.sh / uninstall.sh
+#
+# omarchy-radio: play Singapore radio with a headless mpv, controlled over its
+# IPC socket. mpv is the only state: status asks it, everything else tells it.
+
+set -euo pipefail
+
+SOCK="${XDG_RUNTIME_DIR:-/tmp}/omarchy-radio.sock"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-radio"
+DEFAULT_VOLUME=50
+
+die() { echo "omarchy-radio: $*" >&2; exit 1; }
+
+need() {
+  local tool
+  for tool in "$@"; do
+    command -v "$tool" >/dev/null || die "missing required tool: $tool"
+  done
+}
+
+find_stations() {
+  local here dir
+  here=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+  for dir in "${OMARCHY_RADIO_STATIONS:-}" \
+             "${XDG_DATA_HOME:-$HOME/.local/share}/omarchy-radio/stations.json" \
+             "$here/../stations.json"; do
+    if [[ -n $dir && -r $dir ]]; then echo "$dir"; return; fi
+  done
+  die "no stations.json found (set OMARCHY_RADIO_STATIONS)"
+}
+
+# ---------------------------------------------------------------- mpv IPC
+
+# Send JSON commands on one connection and print the replies (events carry no
+# request_id and are dropped). Prints nothing when no player is listening.
+ipc() {
+  local i=0 c
+  for c in "$@"; do
+    printf '{"command":%s,"request_id":%d}\n' "$c" $((++i))
+  done | socat -t0.05 - "UNIX-CONNECT:$SOCK" 2>/dev/null | grep -F '"request_id"' || true
+}
+
+alive() {
+  [[ -S $SOCK ]] && [[ -n $(ipc '["get_property","pid"]') ]]
+}
+
+saved_volume() {
+  local v
+  v=$(cat "$STATE_DIR/volume" 2>/dev/null) || v=
+  [[ $v =~ ^[0-9]+$ ]] && echo "$v" || echo "$DEFAULT_VOLUME"
+}
+
+# ---------------------------------------------------------------- commands
+
+cmd_list() {
+  need jq column
+  jq -r '.[] | [.id, .freq, .name, .operator] | @tsv' "$(find_stations)" | column -t -s $'\t'
+}
+
+cmd_play() {
+  need jq socat mpv
+  local id=${1:-} url opts=() i
+  [[ -n $id ]] || die "usage: omarchy-radio play <station-id>"
+  url=$(jq -r --arg id "$id" '.[] | select(.id == $id) | .url' "$(find_stations)")
+  [[ -n $url ]] || die "unknown station: $id"
+
+  if alive; then
+    ipc "$(jq -nc --arg u "$url" '["loadfile",$u,"replace"]')" '["set_property","pause",false]' >/dev/null
+    return
+  fi
+
+  rm -f "$SOCK"
+  mkdir -p "$STATE_DIR"
+  read -ra opts <<<"${OMARCHY_RADIO_MPV_OPTS:-}"
+  setsid -f mpv --no-video --no-terminal --idle=no --input-ipc-server="$SOCK" \
+    --volume="$(saved_volume)" "${opts[@]}" "$url" >/dev/null 2>&1
+  for ((i = 0; i < 60; i++)); do
+    alive && return
+    sleep 0.05
+  done
+  die "mpv did not start"
+}
+
+cmd_toggle() {
+  need socat
+  alive && ipc '["cycle","pause"]' >/dev/null
+  return 0
+}
+
+cmd_stop() {
+  need socat
+  local i
+  if alive; then
+    ipc '["quit"]' >/dev/null
+    for ((i = 0; i < 40; i++)); do [[ -S $SOCK ]] || break; sleep 0.05; done
+  fi
+  rm -f "$SOCK"
+}
+
+cmd_volume() {
+  need jq socat
+  local arg=${1:-} cur new
+  [[ $arg =~ ^[+-]?[0-9]+$ ]] || die "usage: omarchy-radio volume <N|+N|-N>"
+
+  if alive; then
+    cur=$(ipc '["get_property","volume"]' | jq -r '.data | round')
+  else
+    cur=$(saved_volume)
+  fi
+
+  if [[ $arg == [+-]* ]]; then new=$((cur + arg)); else new=$arg; fi
+  (( new < 0 )) && new=0
+  (( new > 100 )) && new=100
+
+  mkdir -p "$STATE_DIR"
+  echo "$new" >"$STATE_DIR/volume"
+  alive && ipc "[\"set_property\",\"volume\",$new]" >/dev/null
+  echo "$new"
+}
+
+cmd_status() {
+  need jq socat
+  local out
+  out=$(alive && ipc '["get_property","path"]' '["get_property","pause"]' \
+                     '["get_property","volume"]' '["get_property","metadata"]') || out=
+  if [[ -z $out ]]; then
+    echo '{"class":"stopped","text":"","tooltip":"Radio stopped"}'
+    return
+  fi
+  jq -cs --slurpfile st "$(find_stations)" '
+    def get($n): map(select(.request_id == $n and .error == "success")) | (.[0].data // null);
+    get(1) as $path | get(2) as $paused | (get(3) // 0 | round) as $vol
+    | (get(4) // {}) as $meta
+    | (first($st[0][] | select(.url == $path)) // {}) as $s
+    | ($s.name // $path) as $name
+    | (if $paused then "paused" else "playing" end) as $state
+    | ($meta["icy-title"] // "") as $title
+    | { class: $state, text: $name, station: ($s.id // null), name: $name, freq: ($s.freq // null),
+        volume: $vol,
+        tooltip: ([ $name + (if $s.freq then " · " + $s.freq + " FM" else "" end),
+                    ($state | ascii_upcase[0:1] + .[1:]) + " · Vol " + ($vol | tostring) + "%",
+                    $title ] | map(select(. != "")) | join("\n")) }
+  ' <<<"$out"
+}
+
+cmd_pick() {
+  need jq
+  local select=${OMARCHY_RADIO_SELECT:-omarchy-menu-select} stations cur rows=() sel id
+  stations=$(find_stations)
+  cur=$(cmd_status | jq -r '.station // empty')
+  mapfile -t rows < <(jq -r --arg cur "$cur" --arg radio $'\U000f0439' '
+    .[] | [(if .id == $cur then "✓" else $radio end), .name, "\(.freq) FM · \(.operator)"] | join("\t")
+  ' "$stations")
+  sel=$("$select" "Radio" "${rows[@]}") || return 0
+  sel=${sel%%$'\t'*}
+  id=$(jq -r --arg n "$sel" '.[] | select(.name == $n) | .id' "$stations")
+  [[ -n $id ]] && cmd_play "$id"
+  return 0
+}
+
+# check [--play]: probe every stream URL. Non-HTTP URLs skip the probe.
+cmd_check() {
+  need jq curl
+  local play=0 secs=${OMARCHY_RADIO_CHECK_SECS:-3} tmp failed=0 id url res
+  [[ ${1:-} == --play ]] && { play=1; need mpv; }
+  tmp=$(mktemp -d)
+
+  while IFS=$'\t' read -r id url; do
+    ( res=ok
+      if [[ $url == http* ]]; then
+        probe=$(curl -sL -m 8 -o /dev/null -r 0-4096 -w '%{http_code} %{content_type}' "$url" 2>/dev/null || true)
+        [[ $probe =~ ^2[0-9][0-9]\ audio/ ]] || res="probe failed ($probe)"
+      fi
+      if [[ $res == ok && $play == 1 ]]; then
+        mpv --no-video --no-terminal --ao=null --length="$secs" --msg-level=all=no "$url" >/dev/null 2>&1 \
+          || res="mpv could not play it"
+      fi
+      echo "$res" >"$tmp/$id" ) &
+  done < <(jq -r '.[] | [.id, .url] | @tsv' "$(find_stations)")
+  wait
+
+  while IFS= read -r id; do
+    res=$(<"$tmp/$id")
+    if [[ $res == ok ]]; then printf 'ok    %s\n' "$id"
+    else printf 'FAIL  %s: %s\n' "$id" "$res"; failed=$((failed + 1)); fi
+  done < <(jq -r '.[].id' "$(find_stations)")
+  rm -rf "$tmp"
+  (( failed == 0 ))
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: omarchy-radio <command> [args]
+
+  list                 Show the stations
+  play <id>            Play a station (switches if one is already playing)
+  toggle               Pause or resume
+  stop                 Stop playback
+  volume <N|+N|-N>     Set or nudge the volume, 0-100
+  status               Print the state as one line of JSON
+  pick                 Choose a station from the Omarchy menu
+  check [--play]       Probe every stream URL; --play also plays 3 s of each
+
+Environment:
+  OMARCHY_RADIO_STATIONS   stations.json to use instead of the installed one
+  OMARCHY_RADIO_MPV_OPTS   extra mpv options (e.g. --ao=null)
+USAGE
+}
+
+case "${1:-help}" in
+  list)   cmd_list ;;
+  play)   shift; cmd_play "$@" ;;
+  toggle) cmd_toggle ;;
+  stop)   cmd_stop ;;
+  volume) shift; cmd_volume "$@" ;;
+  status) cmd_status ;;
+  pick)   cmd_pick ;;
+  check)  shift; cmd_check "$@" ;;
+  help | -h | --help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

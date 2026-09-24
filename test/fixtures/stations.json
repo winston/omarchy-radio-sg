@@ -1,0 +1,4 @@
+[
+  {"id":"tone-a","name":"Tone A","freq":"88.8","operator":"Test","language":"none","url":"av://lavfi:sine=frequency=440"},
+  {"id":"tone-b","name":"Tone B","freq":"99.9","operator":"Test","language":"none","url":"av://lavfi:sine=frequency=880"}
+]

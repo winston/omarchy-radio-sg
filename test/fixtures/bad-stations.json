@@ -1,0 +1,4 @@
+[
+  {"id":"tone-a","name":"Tone A","freq":"88.8","operator":"Test","language":"none","url":"av://lavfi:sine=frequency=440"},
+  {"id":"dead","name":"Dead","freq":"1.0","operator":"Test","language":"none","url":"http://127.0.0.1:9/nothing.aac"}
+]

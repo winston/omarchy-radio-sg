@@ -1,0 +1,82 @@
+[
+  {
+    "id": "jia883",
+    "name": "88.3 Jia",
+    "freq": "88.3",
+    "operator": "Mediacorp",
+    "language": "Mandarin",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/883JIAAAC.aac"
+  },
+  {
+    "id": "gold905",
+    "name": "Gold 905",
+    "freq": "90.5",
+    "operator": "Mediacorp",
+    "language": "English",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/GOLD905AAC.aac"
+  },
+  {
+    "id": "symphony924",
+    "name": "Symphony 92.4",
+    "freq": "92.4",
+    "operator": "Mediacorp",
+    "language": "Classical",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/SYMPHONY924AAC.aac"
+  },
+  {
+    "id": "yes933",
+    "name": "YES 933",
+    "freq": "93.3",
+    "operator": "Mediacorp",
+    "language": "Mandarin",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/YES933AAC.aac"
+  },
+  {
+    "id": "class95",
+    "name": "Class 95",
+    "freq": "95.0",
+    "operator": "Mediacorp",
+    "language": "English",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/CLASS95AAC.aac"
+  },
+  {
+    "id": "capital958",
+    "name": "Capital 958",
+    "freq": "95.8",
+    "operator": "Mediacorp",
+    "language": "Mandarin",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/CAPITAL958FMAAC.aac"
+  },
+  {
+    "id": "hao963",
+    "name": "Hao 96.3",
+    "freq": "96.3",
+    "operator": "Mediacorp",
+    "language": "Mandarin",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/HAO_963AAC.aac"
+  },
+  {
+    "id": "love972",
+    "name": "Love 972",
+    "freq": "97.2",
+    "operator": "Mediacorp",
+    "language": "Mandarin",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/LOVE972FMAAC.aac"
+  },
+  {
+    "id": "fm987",
+    "name": "987FM",
+    "freq": "98.7",
+    "operator": "Mediacorp",
+    "language": "English",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/987FMAAC.aac"
+  },
+  {
+    "id": "ufm1003",
+    "name": "UFM 100.3",
+    "freq": "100.3",
+    "operator": "SPH Media",
+    "language": "Mandarin",
+    "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/UFM_1003AAC.aac"
+  }
+]

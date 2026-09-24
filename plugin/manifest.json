@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "local.radio-sg",
+  "name": "Singapore Radio",
+  "version": "0.1.0",
+  "author": "Winston Teo",
+  "description": "Singapore FM radio: now-playing bar widget, controlled by omarchy-radio",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "RadioWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Radio",
+    "description": "Now playing. Click: pick a station, scroll: volume, middle: pause, right: stop",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
