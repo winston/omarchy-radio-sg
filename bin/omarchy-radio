@@ -151,8 +151,8 @@ cmd_status() {
 }
 
 cmd_pick() {
-  need jq
   local select=${OMARCHY_RADIO_SELECT:-omarchy-menu-select} stations cur rows=() sel id
+  need jq "$select"
   stations=$(find_stations)
   cur=$(cmd_status | jq -r '.station // empty')
   mapfile -t rows < <(jq -r --arg cur "$cur" --arg radio $'\U000f0439' '

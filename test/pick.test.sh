@@ -39,6 +39,9 @@ FAKE_PICK='\U000f0439\tTone A\t88.8 FM · Test' "$R" pick
 eq "$(field .station)" tone-a "choose resolves when the icon is echoed back"
 FAKE_PICK='Tone B\t99.9 FM · Test' "$R" pick
 
+# a missing selector is an error, not a silent no-op
+ok '! OMARCHY_RADIO_SELECT=/nonexistent/select "$R" pick 2>"$HOME/err.log" && grep -q "missing required tool" "$HOME/err.log"' "missing selector fails loudly"
+
 # cancel keeps the current station
 unset FAKE_PICK; "$R" pick
 eq "$(field .station)" tone-b "cancel keeps playback"
