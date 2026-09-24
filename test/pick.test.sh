@@ -33,6 +33,12 @@ eq "$(field .class)" stopped "cancel plays nothing"
 FAKE_PICK='Tone B\t99.9 FM · Test' "$R" pick
 eq "$(field .station)" tone-b "choose plays the station"
 
+# a selector that echoes the whole row, icon included, resolves too
+"$R" stop
+FAKE_PICK='\U000f0439\tTone A\t88.8 FM · Test' "$R" pick
+eq "$(field .station)" tone-a "choose resolves when the icon is echoed back"
+FAKE_PICK='Tone B\t99.9 FM · Test' "$R" pick
+
 # cancel keeps the current station
 unset FAKE_PICK; "$R" pick
 eq "$(field .station)" tone-b "cancel keeps playback"

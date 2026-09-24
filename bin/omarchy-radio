@@ -159,8 +159,9 @@ cmd_pick() {
     .[] | [(if .id == $cur then "✓" else $radio end), .name, "\(.freq) FM · \(.operator)"] | join("\t")
   ' "$stations")
   sel=$("$select" "Radio" "${rows[@]}") || return 0
-  sel=${sel%%$'\t'*}
-  id=$(jq -r --arg n "$sel" '.[] | select(.name == $n) | .id' "$stations")
+  # Current omarchy-menu-select returns "label<TAB>subtext"; older ones may echo the
+  # leading icon too. Match on any field so both resolve to the station name.
+  id=$(jq -r --arg sel "$sel" '($sel | split("\t")) as $f | first(.[] | select(.name as $n | $f | index($n)) | .id) // empty' "$stations")
   [[ -n $id ]] && cmd_play "$id"
   return 0
 }
