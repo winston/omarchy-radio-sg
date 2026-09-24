@@ -11,7 +11,8 @@ BarWidget {
   id: root
   moduleName: "winston.radio-sg"
 
-  readonly property string cli: Quickshell.env("HOME") + "/.local/bin/omarchy-radio"
+  // The CLI ships in this plugin folder, so nothing else needs installing and PATH is irrelevant.
+  readonly property string cli: Qt.resolvedUrl("bin/omarchy-radio").toString().replace(/^file:\/\//, "")
   property var radio: ({ "class": "stopped", text: "", tooltip: "Radio stopped", volume: 0 })
   property var stations: []
   property bool popupOpen: false
