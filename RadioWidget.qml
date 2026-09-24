@@ -9,7 +9,7 @@ import qs.Ui
 //   left = popup card   scroll = volume   middle = pause/resume   right = stop
 BarWidget {
   id: root
-  moduleName: "local.radio-sg"
+  moduleName: "winston.radio-sg"
 
   readonly property string cli: Quickshell.env("HOME") + "/.local/bin/omarchy-radio"
   property var radio: ({ "class": "stopped", text: "", tooltip: "Radio stopped", volume: 0 })
