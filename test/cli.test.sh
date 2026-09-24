@@ -13,6 +13,10 @@ mkdir "$HOME/bin"; for t in jq socat column; do ln -s "$(command -v $t)" "$HOME/
 err=$(PATH="$HOME/bin" "$R" play tone-a 2>&1) && rc=0 || rc=$?
 ok '(( rc != 0 )) && [[ $err == *"missing required tool: mpv"* ]]' "missing mpv is named"
 
+# machine-readable listing: one object per station, file order, only the public fields
+eq "$("$R" list --json | jq -c "map(.id)")" '["tone-a","tone-b"]' "list --json order"
+ok '"$R" list --json | jq -e "length == 2 and (.[0] | keys == [\"freq\",\"id\",\"name\",\"operator\"])" >/dev/null' "list --json fields"
+
 # stopped, idle no-ops
 eq "$(field .class)" stopped "status when idle"
 ok '"$R" toggle' "toggle when stopped succeeds"
@@ -59,6 +63,7 @@ ok '"$R" status | jq -e ".class and .text and .tooltip and .station and .name an
 t0=$(date +%s%N); "$R" status >/dev/null; ms=$(( ($(date +%s%N) - t0) / 1000000 ))
 ok '(( ms < 100 ))' "status under 100ms (was ${ms}ms)"
 ok '"$R" status | jq -e ".tooltip | contains(\"Tone A\")" >/dev/null' "tooltip names station"
+ok '"$R" status | jq -e ".freq == \"88.8\" and (has(\"title\") | not)" >/dev/null' "freq present, no title when the stream reports none"
 
 # stop leaves nothing behind
 "$R" stop

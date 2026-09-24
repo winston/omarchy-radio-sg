@@ -36,7 +36,9 @@ install -Dm755 "$here/bin/omarchy-radio" "$BIN"
 install -Dm644 "$here/stations.json" "$DATA/stations.json"
 touch "$DATA/$MARK"
 
+updated=0
 if ! diff -rq -x "$MARK" "$here/plugin" "$PLUGIN" >/dev/null 2>&1; then
+  [[ -e $PLUGIN ]] && updated=1
   rm -rf "$PLUGIN"
   mkdir -p "$PLUGIN"
   cp -r "$here/plugin/." "$PLUGIN/"
@@ -47,6 +49,8 @@ touch "$PLUGIN/$MARK"
 omarchy-shell shell rescanPlugins >/dev/null
 if omarchy-shell shell listPlugins | jq -e --arg id "$ID" '.[] | select(.id == $id and .enabled)' >/dev/null; then
   echo "Widget already enabled."
+  # the shell keeps the widget it already loaded; a changed one needs a restart
+  (( updated )) && echo "The widget changed: run 'omarchy restart shell' to load the new version."
 else
   omarchy plugin enable "$ID"
 fi

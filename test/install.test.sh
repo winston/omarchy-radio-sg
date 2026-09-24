@@ -43,14 +43,16 @@ ok '"$BIN" list | grep -q class95' "installed cli finds installed stations"
 
 # repeat install: same files, no second enable
 before=$(files | xargs sha256sum)
-bash "$REPO/install.sh" >/dev/null 2>&1
+out=$(bash "$REPO/install.sh" 2>&1)
 eq "$(files | xargs sha256sum)" "$before" "repeat install changes no files"
+ok '[[ $out != *"restart shell"* ]]' "unchanged repeat install stays quiet about restarting"
 eq "$(enables)" 1 "repeat install does not enable again"
 
 # update in place, from a changed checkout
 copy=$HOME/checkout; mkdir "$copy"; cp -r "$REPO"/{bin,plugin,stations.json,install.sh} "$copy/"
 echo "// v2" >>"$copy/plugin/RadioWidget.qml"
-bash "$copy/install.sh" >/dev/null 2>&1
+out=$(bash "$copy/install.sh" 2>&1)
+ok '[[ $out == *"omarchy restart shell"* ]]' "update tells you to restart the shell"
 ok 'grep -q "// v2" "$PLUGIN/RadioWidget.qml"' "update reaches the plugin"
 ok '[[ -f $PLUGIN/.omarchy-radio-sg ]]' "marker survives update"
 

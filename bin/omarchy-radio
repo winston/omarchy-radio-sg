@@ -54,6 +54,11 @@ saved_volume() {
 # ---------------------------------------------------------------- commands
 
 cmd_list() {
+  if [[ ${1:-} == --json ]]; then
+    need jq
+    jq -c 'map({id, name, freq, operator})' "$(find_stations)"
+    return
+  fi
   need jq column
   jq -r '.[] | [.id, .freq, .name, .operator] | @tsv' "$(find_stations)" | column -t -s $'\t'
 }
@@ -125,7 +130,7 @@ cmd_status() {
   out=$(alive && ipc '["get_property","path"]' '["get_property","pause"]' \
                      '["get_property","volume"]' '["get_property","metadata"]') || out=
   if [[ -z $out ]]; then
-    echo '{"class":"stopped","text":"","tooltip":"Radio stopped"}'
+    jq -nc --argjson v "$(saved_volume)" '{class: "stopped", text: "", tooltip: "Radio stopped", volume: $v}'
     return
   fi
   jq -cs --slurpfile st "$(find_stations)" '
@@ -136,11 +141,12 @@ cmd_status() {
     | ($s.name // $path) as $name
     | (if $paused then "paused" else "playing" end) as $state
     | ($meta["icy-title"] // "") as $title
-    | { class: $state, text: $name, station: ($s.id // null), name: $name, freq: ($s.freq // null),
+    | ({ class: $state, text: $name, station: ($s.id // null), name: $name, freq: ($s.freq // null),
         volume: $vol,
+        title: (if $title != "" then $title else null end),
         tooltip: ([ $name + (if $s.freq then " · " + $s.freq + " FM" else "" end),
                     ($state | ascii_upcase[0:1] + .[1:]) + " · Vol " + ($vol | tostring) + "%",
-                    $title ] | map(select(. != "")) | join("\n")) }
+                    $title ] | map(select(. != "")) | join("\n")) } | with_entries(select(.value != null)))
   ' <<<"$out"
 }
 
@@ -193,7 +199,7 @@ usage() {
   cat <<'USAGE'
 Usage: omarchy-radio <command> [args]
 
-  list                 Show the stations
+  list [--json]        Show the stations (--json for a JSON array)
   play <id>            Play a station (switches if one is already playing)
   toggle               Pause or resume
   stop                 Stop playback
@@ -209,7 +215,7 @@ USAGE
 }
 
 case "${1:-help}" in
-  list)   cmd_list ;;
+  list)   shift; cmd_list "$@" ;;
   play)   shift; cmd_play "$@" ;;
   toggle) cmd_toggle ;;
   stop)   cmd_stop ;;

@@ -43,7 +43,7 @@ mpv is the only state, so the CLI, the picker and the widget always agree.
 ```
 Usage: omarchy-radio <command> [args]
 
-  list                 Show the stations
+  list [--json]        Show the stations (--json for a JSON array)
   play <id>            Play a station (switches if one is already playing)
   toggle               Pause or resume
   stop                 Stop playback
@@ -58,8 +58,8 @@ Environment:
 ```
 
 `status` prints one line of JSON: `class` (`playing`, `paused` or `stopped`),
-`text`, `tooltip`, and while a station is loaded also `station`, `name`, `freq`
-and `volume`. The first three are Waybar's shape too. The tooltip shows the
+`text`, `tooltip`, and while a station is loaded also `station`, `name`, `freq`,
+`volume` and, when the stream sends one, the song `title`. The first three are Waybar's shape too. The tooltip shows the
 stream's current song title when the station sends one.
 
 The last volume is remembered across stops (default 50).
@@ -71,7 +71,7 @@ The widget sits on the right of the bar after install. Move it with
 
 | Action | Result |
 |---|---|
-| Left click | Open the station picker |
+| Left click | Open or close the popup card |
 | Scroll | Volume up or down by 5 |
 | Middle click | Pause or resume |
 | Right click | Stop |
@@ -79,8 +79,27 @@ The widget sits on the right of the bar after install. Move it with
 
 While playing it shows `󰐊  Class 95`, while paused `󰏤  Class 95`, and when
 stopped only the radio icon `󰐹`, so it stays clickable. On a vertical bar the
-station name is hidden. It refreshes every 2 seconds, so changes made from a
-terminal show up too.
+station name is hidden. It refreshes every 2 seconds (every second while the card
+is open), so changes made from a terminal show up too.
+
+### Popup card
+
+Styled like the network and audio popups, and it follows your theme:
+
+- **Header**: station, frequency, playing or paused, and the current song when the
+  stream sends one.
+- **Play/pause** button (disabled while stopped; start a station from the list).
+- **Volume** slider.
+- **Stations**: click one to switch to it; the current one is highlighted.
+
+### Keybinding for the menu picker
+
+`omarchy-radio pick` opens the station list as an Omarchy menu, handy for a
+keybinding. For example, in `~/.config/hypr/bindings.conf`:
+
+```
+bindd = SUPER ALT, R, Radio, exec, ~/.local/bin/omarchy-radio pick
+```
 
 ## Install
 
@@ -99,9 +118,12 @@ changes your bar only through `omarchy plugin enable`, so the rest of
 Files: `~/.local/bin/omarchy-radio`, `~/.local/share/omarchy-radio/stations.json`
 and `~/.config/omarchy/plugins/local.radio-sg/`.
 
+After updating (`git pull && ./install.sh`), run `omarchy restart shell`: the shell
+keeps the widget it already loaded until it restarts.
+
 > Shell plugins run unsandboxed inside `omarchy-shell`. This one is a single QML
 > file that only runs `omarchy-radio`; read it before enabling if you like:
-> `plugin/RadioWidget.qml`. It uses `omarchy-shell`'s internal widget classes,
+> `plugin/RadioWidget.qml`. It uses `omarchy-shell`'s internal UI classes (`PopupCard`, `Button`, `PanelSlider`, ...),
 > which Omarchy does not document as a stable API, so it was written against 4.0.4.
 
 ## Development
