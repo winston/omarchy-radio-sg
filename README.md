@@ -7,8 +7,8 @@ picker in the Omarchy menu, and mpv doing the playback.
 It targets **Omarchy 4's `omarchy-shell`** (its Quickshell bar and plugin system),
 not Waybar or Walker.
 
-Built spec-first with [OpenSpec](https://github.com/Fission-AI/OpenSpec).
-See `openspec/` for the specs and the change that built this.
+Built spec-first with [OpenSpec](https://github.com/Fission-AI/OpenSpec); see
+[Specs](#specs) for where the requirements and design live.
 
 ## Stations
 
@@ -136,3 +136,21 @@ test/run.sh
 ```
 
 Each `test/*.test.sh` runs in a throwaway `$HOME` and `$XDG_RUNTIME_DIR`.
+
+## Specs
+
+The behavior is specified with [OpenSpec](https://github.com/Fission-AI/OpenSpec),
+and the specs are the source of truth for what this plugin should do.
+
+- `openspec/specs/`: the current requirements, one folder per capability:
+  `station-catalog`, `radio-playback`, `station-picker`, `bar-widget` and
+  `installation`. Each requirement has scenarios that the tests and hands-on checks
+  were written against.
+- `openspec/changes/archive/2026-09-24-add-sg-radio-plugin/`: the change that built
+  the plugin, with its `proposal.md` (why), `design.md` (how, and the alternatives
+  rejected, including why this targets `omarchy-shell` rather than Waybar) and
+  `tasks.md` (what was done and how each part was verified).
+
+To change behavior, propose a new change first (`/opsx:propose` in Claude Code, or
+`openspec new change <name>`), then implement it and archive it so `openspec/specs/`
+stays current.
