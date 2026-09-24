@@ -16,6 +16,8 @@ BarWidget {
   property var radio: ({ "class": "stopped", text: "", tooltip: "Radio stopped", volume: 0 })
   property var stations: []
   property bool popupOpen: false
+  property real wheelAccumulator: 0
+  property int pendingSteps: 0
 
   readonly property string cls: radio["class"]
   readonly property bool stopped: cls === "stopped"
@@ -66,6 +68,16 @@ BarWidget {
   }
 
   Timer {
+    id: wheelTimer
+    interval: 80
+    onTriggered: {
+      var points = root.pendingSteps * 5
+      root.pendingSteps = 0
+      if (points !== 0) root.run(["volume", (points > 0 ? "+" : "") + points])
+    }
+  }
+
+  Timer {
     id: refreshSoon
     interval: 350
     onTriggered: root.refresh()
@@ -82,7 +94,16 @@ BarWidget {
       else if (b === Qt.RightButton) root.run(["stop"])
       else root.popupOpen = !root.popupOpen
     }
-    onWheelMoved: function(delta) { root.run(["volume", delta > 0 ? "+5" : "-5"]) }
+    // A free-spinning wheel sends hundreds of small deltas per flick. Count 120 units as one
+    // 5-point step (the accumulator the shell's own volume icon uses) and send the steps
+    // gathered so far as ONE command every 80 ms, so commands never race each other.
+    onWheelMoved: function(delta) {
+      var wheel = Util.wheelSteps(root.wheelAccumulator, delta)
+      root.wheelAccumulator = wheel.remainder
+      if (wheel.steps === 0) return
+      root.pendingSteps += wheel.steps
+      if (!wheelTimer.running) wheelTimer.start()
+    }
   }
 
   PopupCard {
