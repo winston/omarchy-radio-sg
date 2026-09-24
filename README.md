@@ -170,10 +170,13 @@ and the specs are the source of truth for what this plugin should do.
   `station-catalog`, `radio-playback`, `station-picker`, `bar-widget` and
   `installation`. Each requirement has scenarios that the tests and hands-on checks
   were written against.
-- `openspec/changes/archive/2026-09-24-add-sg-radio-plugin/`: the change that built
-  the plugin, with its `proposal.md` (why), `design.md` (how, and the alternatives
-  rejected, including why this targets `omarchy-shell` rather than Waybar) and
-  `tasks.md` (what was done and how each part was verified).
+- `openspec/changes/archive/`: the changes that built the plugin, each with its
+  `proposal.md` (why), `design.md` (how, and the alternatives rejected) and `tasks.md`
+  (what was done and how each part was verified):
+  - `2026-09-24-add-sg-radio-plugin`: the plugin itself, including why it targets
+    `omarchy-shell` rather than Waybar.
+  - `2026-09-24-publish-as-omarchy-plugin`: restructuring it to match Omarchy's
+    documented plugin model (`omarchy plugin add`).
 
 To change behavior, propose a new change first (`/opsx:propose` in Claude Code, or
 `openspec new change <name>`), then implement it and archive it so `openspec/specs/`
