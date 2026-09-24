@@ -13,7 +13,7 @@
   },
   "barWidget": {
     "displayName": "Radio",
-    "description": "Now playing. Click: pick a station, scroll: volume, middle: pause, right: stop",
+    "description": "Now playing. Click: open the station card, scroll: volume, middle: pause, right: stop",
     "category": "Media",
     "allowMultiple": false,
     "defaultSection": "right"
