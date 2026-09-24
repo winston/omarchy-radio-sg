@@ -92,7 +92,7 @@ another key (`omarchy menu keybindings --print` lists what is taken).
 | 100.3 | UFM 100.3 | SPH Media | Mandarin | `ufm1003` |
 
 These are the stations' public streams, each played and checked with
-`omarchy-radio check --play`; the meLISTEN app's private API is not used. Stations
+`omarchy-radio check --play`. Stations
 can change or move their streams: if one goes silent, run `omarchy-radio check`
 and open an issue. To add one, put an entry in `stations.json` (see
 [CONTRIBUTING.md](CONTRIBUTING.md)).
