@@ -22,9 +22,9 @@
 
 ## 5. Docs (`installation`)
 
-- [ ] 5.1 Rewrite the README "Install" section: requirements, `omarchy plugin add <git-url> --enable`, update (`omarchy plugin update` and `omarchy restart shell`), remove (`omarchy-radio stop`, `omarchy plugin remove winston.radio-sg --yes`), the optional PATH helper, and the development workflow (commit, add from a local path); update every other mention of the old id, the `plugin/` path and the copy-based installer, and the `omarchy bar move` example; verify each documented command runs as written on this machine (dev workflow with the local path)
+- [x] 5.1 Rewrite the README "Install" section: requirements, `omarchy plugin add <git-url> --enable`, update (`omarchy plugin update` and `omarchy restart shell`), remove (`omarchy-radio stop`, `omarchy plugin remove winston.radio-sg --yes`), the optional PATH helper, and the development workflow (commit, add from a local path); update every other mention of the old id, the `plugin/` path and the copy-based installer, and the `omarchy bar move` example; verify each documented command runs as written on this machine (dev workflow with the local path)
 
 ## 6. Integration on this machine
 
-- [ ] 6.1 Final pass from a clean state: `omarchy plugin remove winston.radio-sg --yes`, confirm `shell.json` is identical to the snapshot, then `omarchy plugin add <checkout> --enable --yes` and `./install.sh`; verify the widget, popup card, scroll volume and a station play work, `omarchy-radio` runs from a terminal, and `test/run.sh` and `openspec validate --strict` pass
-- [ ] 6.2 Leave the machine in a good state (widget installed and enabled, radio stopped, volume low) and commit the work on `master` with no remote and no push; verify `git remote -v` prints nothing and `git status` is clean
+- [x] 6.1 Final pass from a clean state: `omarchy plugin remove winston.radio-sg --yes`, confirm `shell.json` is identical to the snapshot, then `omarchy plugin add <checkout> --enable --yes` and `./install.sh`; verify the widget, popup card, scroll volume and a station play work, `omarchy-radio` runs from a terminal, and `test/run.sh` and `openspec validate --strict` pass
+- [x] 6.2 Leave the machine in a good state (widget installed and enabled, radio stopped, volume low) and commit the work on `master` with no remote and no push; verify `git remote -v` prints nothing and `git status` is clean
