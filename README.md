@@ -67,11 +67,14 @@ The play/pause button is disabled while stopped, so start a station from the lis
 The widget follows changes made from a terminal within a couple of seconds.
 
 To open the station list as an Omarchy menu from a keybinding (needs the terminal
-command above), for example in `~/.config/hypr/bindings.conf`:
+command above), add a line to `~/.config/hypr/bindings.lua` and run `hyprctl reload`:
 
+```lua
+o.bind("SUPER + ALT + R", "Radio", "omarchy-radio pick")
 ```
-bindd = SUPER ALT, R, Radio, exec, ~/.local/bin/omarchy-radio pick
-```
+
+`SUPER + ALT + R` is unused in Omarchy's defaults; if you have already bound it, pick
+another key (`omarchy menu keybindings --print` lists what is taken).
 
 ## Stations
 
