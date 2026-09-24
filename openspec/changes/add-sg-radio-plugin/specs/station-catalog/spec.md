@@ -41,3 +41,10 @@ The plugin SHALL use publicly published stream URLs and SHALL NOT depend on the 
 #### Scenario: Public URLs only
 - **WHEN** the station list is reviewed
 - **THEN** every URL is a plain HTTP(S) audio stream reachable without authentication or app credentials
+
+### Requirement: Machine-readable listing
+The plugin SHALL be able to list the stations as JSON, giving each station's `id`, `name`, `freq` and `operator`, in the order of the station file, so other frontends need not parse text.
+
+#### Scenario: JSON listing
+- **WHEN** the user asks for the station list as JSON
+- **THEN** a single JSON array is printed with one object per station with those fields

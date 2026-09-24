@@ -17,11 +17,15 @@ from the bar and menu, with no browser, no app and no window.
   `mpv` (`--no-video --input-ipc-server`) and controls it over the IPC socket:
   `play`, `stop`, `toggle` (pause), `volume`, `status`, `pick`.
 - Add a station picker built on the Omarchy menu (`omarchy-menu-select`), which
-  is the Omarchy 4 equivalent of a Walker dmenu.
+  is the Omarchy 4 equivalent of a Walker dmenu. It is a standalone command
+  (`omarchy-radio pick`) for terminals and keybindings.
 - Add an `omarchy-shell` bar-widget plugin (manifest and one QML file). It shows
-  the now-playing state and maps the interactions: left click opens the picker,
-  scroll changes volume, right click stops, middle click pauses. It gets its
-  state from `omarchy-radio status`.
+  the now-playing state and maps the interactions: left click opens a popup card,
+  scroll changes volume, right click stops, middle click pauses. The popup card
+  is styled like the network and audio popups and holds a now-playing header
+  (station, frequency, state, song title), a play/pause button, a volume slider
+  and the station list. It gets its state from `omarchy-radio status` and its
+  stations from `omarchy-radio list --json`.
 - Add idempotent `install.sh` and `uninstall.sh`. They put the scripts in
   `~/.local/bin`, link the plugin into `~/.config/omarchy/plugins/`, and enable
   it with `omarchy plugin`. They never overwrite user config.

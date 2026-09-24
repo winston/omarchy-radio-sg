@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Lets the user choose a station from a keyboard-driven list in the Omarchy menu, without a browser or a separate app.
+Lets the user choose a station from a keyboard-driven list in the Omarchy menu, without a browser or a separate app. It is a standalone command, so it can be bound to a key or run from a terminal; the bar widget offers its own popup card instead.
 
 ## ADDED Requirements
 
@@ -33,3 +33,10 @@ The picker SHALL mark the station that is currently playing or paused.
 #### Scenario: Marker
 - **WHEN** Gold 905 is playing and the user opens the picker
 - **THEN** the Gold 905 row is visibly marked
+
+### Requirement: Standalone command
+The picker SHALL be openable by a single command, independent of the bar widget.
+
+#### Scenario: Open from a terminal or keybinding
+- **WHEN** the user runs the pick command from a terminal or a keybinding
+- **THEN** the picker opens and behaves as described above

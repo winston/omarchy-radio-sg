@@ -63,11 +63,15 @@ The plugin SHALL provide a stop command that ends playback and releases the play
 - **THEN** the command exits successfully
 
 ### Requirement: Machine-readable status
-The plugin SHALL print the current state as a single line of JSON containing a `class` of `playing`, `paused` or `stopped`, a short `text`, a `tooltip`, and, when a station is loaded, its `station` id and `name` and the current `volume`. Status SHALL be fast and read-only.
+The plugin SHALL print the current state as a single line of JSON containing a `class` of `playing`, `paused` or `stopped`, a short `text`, a `tooltip`, and, when a station is loaded, its `station` id and `name`, its `freq`, the current `volume` and, when the stream reports one, the current song `title`. Status SHALL be fast and read-only.
 
 #### Scenario: Playing
 - **WHEN** a station is playing
 - **THEN** status reports class `playing` with that station's id, name and volume
+
+#### Scenario: Song title
+- **WHEN** the stream reports the current song
+- **THEN** status includes it as `title`, and omits `title` when the stream reports none
 
 #### Scenario: Stopped
 - **WHEN** nothing is playing

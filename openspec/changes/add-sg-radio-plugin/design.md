@@ -92,13 +92,14 @@ it goes stale and needs its own cleanup logic. Consequences:
   `$XDG_STATE_HOME/omarchy-radio/volume` and passed as `--volume` on spawn.
   Default 50, so a first play is never at full blast.
 
-### D4. Picker via `omarchy-menu-select`
+### D4. Standalone picker via `omarchy-menu-select`
 `pick` feeds rows as `<glyph>\t<name>\t<freq> FM · <operator>` and maps the
 returned label back to an id. The current station gets a different glyph. This is
 what a Walker dmenu would have been. It is one function, and no menu-config edits
 are needed (see Context on why the JSONC provider is not usable). An optional
 follow-up is a `radio` entry in the user's `omarchy-menu.jsonc`; the installer does
-not touch that file.
+not touch that file. The picker is no longer the widget's left-click action (see
+D9); it stays as `omarchy-radio pick` for a terminal or a keybinding.
 
 ### D5. Widget polls `omarchy-radio status` every 2 s
 A QML `Timer` runs the CLI through a Quickshell `Process`, parses the JSON, and
@@ -107,8 +108,30 @@ immediate refresh. Two seconds is cheap (one socat round trip) and covers the
 "external change shows up within seconds" requirement. *Alternative:* a
 long-lived `mpv` property-observer socket in QML: reactive, but more QML and
 harder to test. It can be swapped in later without changing the CLI.
-Interactions: left = `pick`, scroll = `volume ±5`, right = `stop`, middle = `toggle`.
+Interactions: left = toggle the popup card (D9), scroll = `volume ±5`, right = `stop`, middle = `toggle`.
 On a vertical bar the label is hidden (spec).
+
+### D9. Left click opens a `PopupCard`, built like the media popup
+The widget keeps its `WidgetButton` in the bar and adds a `PopupCard` (anchored to
+it, `open` bound to a `popupOpen` flag) so the placement, border, theme colors,
+outside-click and Escape dismissal come from the shell, exactly as for the network
+and audio popups. `omarchy.media`'s now-playing card is the template. Contents,
+top to bottom, all from `qs.Ui`:
+1. Header: station name (bold), `freq FM · state`, and the song title.
+2. A `Button` row with play/pause (disabled when stopped, so it needs no "last
+   station" state).
+3. A `PanelSlider` for volume (0–100, sends `volume N` on release).
+4. `PanelSeparator`, a `PanelSectionHeader` "STATIONS", then one selectable row per
+   station, styled like the media widget's source list (selected fill for the
+   current one). Clicking a row runs `play <id>`; the card stays open.
+
+Data: the station list is fetched once from `omarchy-radio list --json` when the
+widget loads. `status` gains `title` (from ICY metadata, already read for the
+tooltip) and `freq`. Polling is 2 s, and 1 s while the card is open, so it tracks
+external changes without a socket observer. *Alternative:* reuse `omarchy-menu-select`
+inside the card. Rejected: it is a full-screen menu, not an in-card list. *Alternative:*
+`PanelHero` for the header; a plain `Row`/`Column` header like the media card is
+simpler and needs no icon component.
 
 ### D6. Data and install layout
 | Item | Installed at |
@@ -156,6 +179,10 @@ running it in the live shell on this machine.
 - **[Enable and disable may not restore `shell.json` exactly]** → the round-trip
   scenario is tested by diffing `shell.json` before install and after uninstall,
   with any difference resolved via `omarchy bar`.
+- **[The popup relies on more of the shell's internal `qs.Ui` classes]**
+  (`PopupCard`, `Button`, `PanelSlider`, `BorderSurface`, `Style`, `Color`) → copy the
+  usage in `omarchy.media`, check on this machine that third-party plugins can
+  import them, and note the 4.0.4 dependency in the README.
 - **[Polling adds a small constant load]** → about one process per 2 s, only
   while the widget exists.
 - **[Unverified station names]** → CNA938, Lush 99.5, Hitz 89.9 and the SPH
