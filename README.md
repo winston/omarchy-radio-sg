@@ -67,7 +67,7 @@ The last volume is remembered across stops (default 50).
 ## Bar widget
 
 The widget sits on the right of the bar after install. Move it with
-`omarchy bar move local.radio-sg --section center`.
+`omarchy bar move winston.radio-sg --section center`.
 
 | Action | Result |
 |---|---|
@@ -98,33 +98,48 @@ Styled like the network and audio popups, and it follows your theme:
 keybinding. For example, in `~/.config/hypr/bindings.conf`:
 
 ```
-bindd = SUPER ALT, R, Radio, exec, ~/.local/bin/omarchy-radio pick
+bindd = SUPER ALT, R, Radio, exec, ~/.local/bin/omarchy-radio pick   # needs the PATH helper, see Install
 ```
 
 ## Install
 
 Requires Omarchy 4 or newer, plus `mpv`, `socat`, `jq` and `curl`.
 
+This repo is an Omarchy shell plugin, so Omarchy installs it for you:
+
 ```bash
-./install.sh      # copies the CLI, stations and plugin, then enables the widget
-./uninstall.sh    # stops playback and removes exactly what install.sh added
+omarchy plugin add <git-url> --enable     # clone, validate and enable the widget
+omarchy plugin update winston.radio-sg    # later: fetch new versions
+omarchy restart shell                     # the shell keeps a loaded widget until it restarts
+omarchy plugin remove winston.radio-sg --yes
 ```
 
-Both are safe to re-run. The installer only overwrites files it created (they
-carry a marker) and stops with an error if something else is in the way. It
-changes your bar only through `omarchy plugin enable`, so the rest of
-`shell.json` is left alone, and uninstalling restores it exactly.
+That is all the widget needs: it runs the CLI from inside its own folder
+(`~/.config/omarchy/plugins/winston.radio-sg/`), so nothing else is installed and
+your `PATH` does not matter. Stop any playing station first with the widget's
+right click, since removing the plugin does not stop it.
 
-Files: `~/.local/bin/omarchy-radio`, `~/.local/share/omarchy-radio/stations.json`
-and `~/.config/omarchy/plugins/local.radio-sg/`.
+### The `omarchy-radio` command in a terminal (optional)
 
-After updating (`git pull && ./install.sh`), run `omarchy restart shell`: the shell
-keeps the widget it already loaded until it restarts.
+To run `omarchy-radio` yourself, or use the keybinding above, link it onto your PATH:
+
+```bash
+cd ~/.config/omarchy/plugins/winston.radio-sg
+./install.sh      # checks the requirements, links ~/.local/bin/omarchy-radio here
+./uninstall.sh    # stops playback and removes that link, nothing else
+```
+
+The link points into the plugin folder, so `omarchy plugin update` updates it too.
+The script is safe to re-run and refuses to replace a file it did not create.
+It only checks that the requirements above are installed, which makes it a handy
+diagnostic if the widget seems to do nothing.
 
 > Shell plugins run unsandboxed inside `omarchy-shell`. This one is a single QML
 > file that only runs `omarchy-radio`; read it before enabling if you like:
-> `plugin/RadioWidget.qml`. It uses `omarchy-shell`'s internal UI classes (`PopupCard`, `Button`, `PanelSlider`, ...),
-> which Omarchy does not document as a stable API, so it was written against 4.0.4.
+> `RadioWidget.qml`. It uses `omarchy-shell`'s internal UI classes (`PopupCard`,
+> `Button`, `PanelSlider`, ...), which Omarchy does not document as a stable API,
+> so it was written against 4.0.4. The plugin folder is the whole repository
+> (about 1 MB with the tests and specs).
 
 ## Development
 
@@ -136,6 +151,15 @@ test/run.sh
 ```
 
 Each `test/*.test.sh` runs in a throwaway `$HOME` and `$XDG_RUNTIME_DIR`.
+
+To try the plugin from a checkout, commit your change and add the checkout by path;
+Omarchy clones the committed files, so uncommitted edits do not show up:
+
+```bash
+omarchy plugin add /path/to/omarchy-radio-sg --enable --yes
+# after more commits:
+omarchy plugin update winston.radio-sg --yes && omarchy restart shell
+```
 
 ## Specs
 

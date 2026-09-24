@@ -1,104 +1,80 @@
-# install.sh / uninstall.sh in a throwaway HOME with stubbed omarchy commands.
+# install.sh / uninstall.sh (the optional PATH helper) in a throwaway HOME, plus checks
+# that the repo root is a valid Omarchy plugin folder.
 source "$(dirname "$0")/lib.sh"
 
 REPO=$TEST_ROOT
-ID=local.radio-sg
-BIN=$HOME/.local/bin/omarchy-radio
-DATA=$HOME/.local/share/omarchy-radio
-PLUGIN=$HOME/.config/omarchy/plugins/$ID
-CALLS=$HOME/calls.log
+LINK=$HOME/.local/bin/omarchy-radio
+export OMARCHY_RADIO_STATIONS="$REPO/test/fixtures/stations.json" OMARCHY_RADIO_MPV_OPTS=--ao=null
 
-# stubs: the real omarchy CLI would talk to the live shell
+# the helper only checks that these exist; stubs keep the real shell out of it
 stubs=$HOME/stubs; mkdir -p "$stubs"
-cat >"$stubs/omarchy" <<'S'
-#!/bin/bash
-echo "omarchy $*" >>"$HOME/calls.log"
-case "$*" in
-  "plugin enable"*) touch "$HOME/enabled" ;;
-  "plugin disable"*) rm -f "$HOME/enabled" ;;
-esac
-S
-cat >"$stubs/omarchy-shell" <<'S'
-#!/bin/bash
-echo "omarchy-shell $*" >>"$HOME/calls.log"
-if [[ $* == "shell listPlugins" ]]; then
-  if [[ -e $HOME/enabled ]]; then echo '[{"id":"local.radio-sg","enabled":true}]'; else echo '[]'; fi
-fi
-S
-printf '#!/bin/bash\nexit 0\n' >"$stubs/omarchy-plugin-enable"
+for c in omarchy omarchy-shell omarchy-plugin-enable; do printf '#!/bin/bash\nexit 0\n' >"$stubs/$c"; done
 chmod +x "$stubs"/*
 export PATH="$stubs:$PATH"
 
-files() { find "$HOME" -type f ! -path "$stubs/*" ! -path "$HOME/checkout/*" ! -path "$HOME/tools/*" ! -name calls.log ! -name enabled | sort; }
-enables() { grep -c '^omarchy plugin enable' "$CALLS" || true; }
+# -- the repo root is a plugin folder
+ok '[[ $(jq -r .id "$REPO/manifest.json") == winston.radio-sg ]]' "manifest id is winston.radio-sg"
+ok 'grep -q "moduleName: \"winston.radio-sg\"" "$REPO/RadioWidget.qml"' "widget moduleName matches the id"
+ok '[[ -z $(find "$REPO" -name .git -prune -o -type l -print -quit) ]]' "no symlinks in the repo"
+if command -v omarchy-plugin-validate >/dev/null; then
+  ok 'omarchy-plugin-validate "$REPO" >/dev/null 2>&1' "repo root passes omarchy plugin validate"
+else
+  echo "  skip: omarchy-plugin-validate not installed" >&2
+fi
 
-# first install
+# -- link created
 out=$(bash "$REPO/install.sh" 2>&1); rc=$?
 eq "$rc" 0 "install succeeds ($out)"
-ok '[[ -x $BIN ]]' "cli installed"
-ok '[[ -f $DATA/stations.json ]]' "stations installed"
-ok '[[ -f $PLUGIN/manifest.json && -f $PLUGIN/RadioWidget.qml ]]' "plugin installed"
-eq "$(enables)" 1 "plugin enabled once"
-ok '"$BIN" list | grep -q class95' "installed cli finds installed stations"
+ok '[[ -L $LINK && $(readlink "$LINK") == "$REPO/bin/omarchy-radio" ]]' "link points into this folder"
+ok '"$LINK" list | grep -q tone-a' "linked command finds its stations"
 
-# repeat install: same files, no second enable
-before=$(files | xargs sha256sum)
-out=$(bash "$REPO/install.sh" 2>&1)
-eq "$(files | xargs sha256sum)" "$before" "repeat install changes no files"
-ok '[[ $out != *"restart shell"* ]]' "unchanged repeat install stays quiet about restarting"
-eq "$(enables)" 1 "repeat install does not enable again"
+# -- repeat run changes nothing
+out=$(bash "$REPO/install.sh" 2>&1); rc=$?
+eq "$rc" 0 "repeat run succeeds"
+ok '[[ $out == *"Already linked"* ]]' "repeat run says it is already linked"
 
-# update in place, from a changed checkout
-copy=$HOME/checkout; mkdir "$copy"; cp -r "$REPO"/{bin,plugin,stations.json,install.sh} "$copy/"
-echo "// v2" >>"$copy/plugin/RadioWidget.qml"
-out=$(bash "$copy/install.sh" 2>&1)
-ok '[[ $out == *"omarchy restart shell"* ]]' "update tells you to restart the shell"
-ok 'grep -q "// v2" "$PLUGIN/RadioWidget.qml"' "update reaches the plugin"
-ok '[[ -f $PLUGIN/.omarchy-radio-sg ]]' "marker survives update"
+# -- follows the target: a second checkout takes over the link, and edits show through
+copy=$HOME/checkout; mkdir "$copy"; cp -r "$REPO"/{bin,stations.json,install.sh,uninstall.sh} "$copy/"
+bash "$copy/install.sh" >/dev/null 2>&1
+eq "$(readlink "$LINK")" "$copy/bin/omarchy-radio" "another checkout of ours can take over the link"
+echo "# v2" >>"$copy/bin/omarchy-radio"
+ok 'grep -q "^# v2" "$LINK"' "edits to the target show through the link"
 
-# uninstall
-out=$(bash "$REPO/uninstall.sh" 2>&1)
-eq "$out" Uninstalled. "uninstall message"
-eq "$(files)" "" "uninstall leaves no files behind (round trip)"
-ok 'grep -q "^omarchy plugin disable $ID" "$CALLS"' "plugin disabled"
+# -- uninstall stops playback and removes the link
+export XDG_STATE_HOME=$HOME/state
+"$LINK" play tone-a
+eq "$(pgrep -fc "input-ipc-server=$XDG_RUNTIME_DIR" || true)" 1 "a player is running"
+out=$(bash "$copy/uninstall.sh" 2>&1)
+eq "$out" "Removed $LINK" "uninstall message"
+ok '[[ ! -e $LINK && ! -L $LINK ]]' "link removed"
+eq "$(pgrep -fc "input-ipc-server=$XDG_RUNTIME_DIR" || true)" 0 "playback stopped"
 
-# nothing to remove
-eq "$(bash "$REPO/uninstall.sh" 2>&1)" "Nothing to do." "uninstall when absent"
-ok 'bash "$REPO/uninstall.sh" >/dev/null 2>&1' "uninstall when absent succeeds"
+# -- nothing to remove
+eq "$(bash "$REPO/uninstall.sh" 2>&1)" "Nothing to do." "uninstall with no link"
+ok 'bash "$REPO/uninstall.sh" >/dev/null 2>&1' "uninstall with no link succeeds"
 
-# partial install: only the cli
-bash "$REPO/install.sh" >/dev/null 2>&1; rm -rf "$PLUGIN" "$DATA"
-ok 'bash "$REPO/uninstall.sh" >/dev/null 2>&1' "partial uninstall succeeds"
-ok '[[ ! -e $BIN ]]' "partial uninstall removes the cli"
-rm -f "$HOME/enabled"
-
-# name collision: someone else's file at the cli path
-mkdir -p "$HOME/.local/bin"; echo "mine" >"$BIN"
+# -- name collision: someone else's file or link is refused and left alone
+mkdir -p "$HOME/.local/bin"; echo "mine" >"$LINK"
 err=$(bash "$REPO/install.sh" 2>&1) && rc=0 || rc=$?
-ok '(( rc != 0 )) && [[ $err == *"not installed by this project"* ]]' "collision refused"
-eq "$(cat "$BIN")" mine "foreign file untouched"
-ok '[[ ! -e $PLUGIN && ! -e $DATA ]]' "nothing else installed on collision"
-ok 'bash "$REPO/uninstall.sh" >/dev/null 2>&1; [[ $(cat "$BIN") == mine ]]' "uninstall leaves foreign file alone"
-rm -f "$BIN"
+ok '(( rc != 0 )) && [[ $err == *"not created by this project"* ]]' "foreign file refused"
+eq "$(cat "$LINK")" mine "foreign file untouched"
+ok 'bash "$REPO/uninstall.sh" >/dev/null 2>&1; [[ $(cat "$LINK") == mine ]]' "uninstall leaves a foreign file alone"
+rm -f "$LINK"; echo "other" >"$HOME/other"; ln -s "$HOME/other" "$LINK"
+ok '! bash "$REPO/install.sh" >/dev/null 2>&1 && [[ $(readlink "$LINK") == "$HOME/other" ]]' "foreign link refused and untouched"
+rm -f "$LINK"
 
-# collision on the plugin dir
-mkdir -p "$PLUGIN"; echo x >"$PLUGIN/theirs"
-ok '! bash "$REPO/install.sh" >/dev/null 2>&1' "plugin dir collision refused"
-ok '[[ ! -e $BIN && -f $PLUGIN/theirs ]]' "plugin dir collision changes nothing"
-rm -rf "$HOME/.config"
-
-# a missing tool is named and nothing changes
+# -- a missing tool is named and nothing changes
 tools=$HOME/tools; mkdir "$tools"
-for t in jq socat curl column install cp rm mkdir touch diff grep dirname cat sha256sum; do ln -s "$(command -v $t)" "$tools/$t"; done
+for t in jq socat curl column ln mkdir grep dirname readlink cat; do ln -s "$(command -v $t)" "$tools/$t"; done
 cp "$stubs"/* "$tools/"
 err=$(PATH="$tools" /bin/bash "$REPO/install.sh" 2>&1) && rc=0 || rc=$?
 ok '(( rc != 0 )) && [[ $err == *"missing required tools: mpv"* ]]' "missing mpv is named"
-ok '[[ ! -e $BIN ]]' "no changes when a tool is missing"
+ok '[[ ! -e $LINK && ! -L $LINK ]]' "no link when a tool is missing"
 
-# Omarchy without plugin support
+# -- Omarchy without plugin support
 rm "$tools/omarchy-plugin-enable"; ln -s "$(command -v mpv)" "$tools/mpv"
 err=$(PATH="$tools" /bin/bash "$REPO/install.sh" 2>&1) && rc=0 || rc=$?
 ok '(( rc != 0 )) && [[ $err == *"shell plugin support"* ]]' "unsupported Omarchy explained"
-ok '[[ ! -e $BIN ]]' "no changes on unsupported Omarchy"
+ok '[[ ! -e $LINK && ! -L $LINK ]]' "no link on unsupported Omarchy"
 
 done_tests

@@ -1,16 +1,13 @@
 #!/bin/bash
-# Install omarchy-radio: the CLI, the station list and the Omarchy shell bar widget.
-# Safe to re-run. It only overwrites files it created (each carries a marker) and
-# changes the bar only through `omarchy plugin enable`.
+# Optional helper: put `omarchy-radio` on your PATH by linking to the copy in this
+# folder. The plugin itself is installed with `omarchy plugin add`; this only adds
+# the terminal command. Safe to re-run; it never replaces a file it did not create.
 
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-ID=local.radio-sg
-MARK=.omarchy-radio-sg
-BIN=$HOME/.local/bin/omarchy-radio
-DATA=${XDG_DATA_HOME:-$HOME/.local/share}/omarchy-radio
-PLUGIN=$HOME/.config/omarchy/plugins/$ID
+SRC=$here/bin/omarchy-radio
+LINK=$HOME/.local/bin/omarchy-radio
 
 die() { echo "install: $*" >&2; exit 1; }
 
@@ -22,42 +19,19 @@ done
 (( ${#missing[@]} == 0 )) || die "missing required tools: ${missing[*]}"
 command -v omarchy-plugin-enable >/dev/null ||
   die "this Omarchy has no shell plugin support (omarchy plugin ...); Omarchy 4 or newer is required"
+[[ -x $SRC ]] || die "$SRC not found; run this from the plugin folder"
 
 # -- never replace something we did not create
-[[ ! -e $BIN && ! -L $BIN ]] || grep -q 'omarchy-radio-sg managed' "$BIN" 2>/dev/null ||
-  die "$BIN exists and was not installed by this project; not touching it"
-[[ ! -e $DATA ]] || [[ -e $DATA/$MARK ]] ||
-  die "$DATA exists and was not created by this project; not touching it"
-[[ ! -e $PLUGIN && ! -L $PLUGIN ]] || [[ -f $PLUGIN/$MARK && ! -L $PLUGIN ]] ||
-  die "$PLUGIN exists and was not created by this project; not touching it"
-
-# -- files
-install -Dm755 "$here/bin/omarchy-radio" "$BIN"
-install -Dm644 "$here/stations.json" "$DATA/stations.json"
-touch "$DATA/$MARK"
-
-updated=0
-if ! diff -rq -x "$MARK" "$here/plugin" "$PLUGIN" >/dev/null 2>&1; then
-  [[ -e $PLUGIN ]] && updated=1
-  rm -rf "$PLUGIN"
-  mkdir -p "$PLUGIN"
-  cp -r "$here/plugin/." "$PLUGIN/"
-fi
-touch "$PLUGIN/$MARK"
-
-# -- register with the shell; an already-enabled widget keeps its place in the bar
-omarchy-shell shell rescanPlugins >/dev/null
-if omarchy-shell shell listPlugins | jq -e --arg id "$ID" '.[] | select(.id == $id and .enabled)' >/dev/null; then
-  echo "Widget already enabled."
-  # the shell keeps the widget it already loaded; a changed one needs a restart
-  (( updated )) && echo "The widget changed: run 'omarchy restart shell' to load the new version."
-else
-  omarchy plugin enable "$ID"
+if [[ -e $LINK || -L $LINK ]]; then
+  [[ $(readlink "$LINK" 2>/dev/null) == "$SRC" ]] && { echo "Already linked: $LINK"; exit 0; }
+  grep -q 'omarchy-radio-sg managed' "$LINK" 2>/dev/null ||
+    die "$LINK exists and was not created by this project; not touching it"
 fi
 
-echo "Installed. Try: omarchy-radio pick"
+mkdir -p "$(dirname "$LINK")"
+ln -sfn "$SRC" "$LINK"
+echo "Linked $LINK -> $SRC"
 case ":$PATH:" in
   *":$HOME/.local/bin:"*) ;;
-  *) echo "Note: ~/.local/bin is not on your PATH, so run it as $BIN in a terminal." ;;
+  *) echo "Note: ~/.local/bin is not on your PATH; run it as $LINK." ;;
 esac
-echo "Move the widget with: omarchy bar move $ID --section center"
