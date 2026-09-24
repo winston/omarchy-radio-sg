@@ -113,8 +113,8 @@ On a vertical bar the label is hidden (spec).
 
 ### D9. Left click opens a `PopupCard`, built like the media popup
 The widget keeps its `WidgetButton` in the bar and adds a `PopupCard` (anchored to
-it, `open` bound to a `popupOpen` flag) so the placement, border, theme colors,
-outside-click and Escape dismissal come from the shell, exactly as for the network
+it, `open` bound to a `popupOpen` flag) so the placement, border, theme colors and
+outside-click dismissal come from the shell, exactly as for the network
 and audio popups. `omarchy.media`'s now-playing card is the template. Contents,
 top to bottom, all from `qs.Ui`:
 1. Header: station name (bold), `freq FM · state`, and the song title.

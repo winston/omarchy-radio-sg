@@ -56,7 +56,7 @@ The widget SHALL map left click to opening or closing the popup card, scroll to 
 - **THEN** playback pauses if playing, or resumes if paused
 
 ### Requirement: Popup card
-The widget SHALL open a popup card, styled like Omarchy's other bar popups (network, audio, power) and following the active theme, containing a now-playing header, a play/pause button, a volume slider and the list of stations. The header SHALL show the station name and frequency, the state (playing, paused or stopped) and, when the stream reports one, the current song title. The card SHALL stay up to date while it is open, and SHALL close when the user clicks elsewhere or presses Escape.
+The widget SHALL open a popup card, styled like Omarchy's other bar popups (network, audio, power) and following the active theme, containing a now-playing header, a play/pause button, a volume slider and the list of stations. The header SHALL show the station name and frequency, the state (playing, paused or stopped) and, when the stream reports one, the current song title. The card SHALL stay up to date while it is open, and SHALL close when the user clicks elsewhere.
 
 #### Scenario: Now-playing header
 - **WHEN** Class 95 is playing a song and the user opens the popup card
@@ -91,7 +91,7 @@ The widget SHALL open a popup card, styled like Omarchy's other bar popups (netw
 - **THEN** the card reflects the change within a couple of seconds
 
 #### Scenario: Dismiss
-- **WHEN** the user clicks outside the popup card or presses Escape
+- **WHEN** the user clicks outside the popup card
 - **THEN** the card closes and playback is unchanged
 
 ### Requirement: Bar orientation and theme
